@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HTML Platformer Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #222;
+        }
+        canvas {
+            display: block;
+            margin: auto;
+            background: #87CEEB;
+            border: 3px solid white;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="game" width="900" height="500"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let keys = {};
+
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+class Player {
+    constructor() {
+        this.x = 100;
+        this.y = 300;
+        this.w = 40;
+        this.h = 40;
+        this.dx = 0;
+        this.dy = 0;
+        this.speed = 4;
+        this.jumpForce = 12;
+        this.gravity = 0.7;
+        this.grounded = false;
+    }
+
+    update() {
+        if (keys["ArrowLeft"]) this.dx = -this.speed;
+        else if (keys["ArrowRight"]) this.dx = this.speed;
+        else this.dx = 0;
+
+        if (keys["ArrowUp"] && this.grounded) {
+            this.dy = -this.jumpForce;
+            this.grounded = false;
+        }
+
+        this.dy += this.gravity;
+
+        this.x += this.dx;
+        this.y += this.dy;
+
+        if (this.y + this.h > canvas.height - 20) {
+            this.y = canvas.height - this.h - 20;
+            this.dy = 0;
+            this.grounded = true;
+        }
+
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+}
+
+class Platform {
+    constructor(x, y, w, h) {
+        this.x = x; this.y = y;
+        this.w = w; this.h = h;
+    }
+
+    draw() {
+        ctx.fillStyle = "#654321";
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+    }
+}
+
+class Coin {
+    constructor(x, y) {
+        this.x = x; this.y = y;
+        this.r = 10;
+        this.collected = false;
+    }
+
+    draw() {
+        if (!this.collected) {
+            ctx.fillStyle = "gold";
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+}
+
+let player = new Player();
+
+let platforms = [
+    new Platform(0, 480, 900, 20),
+    new Platform(200, 380, 150, 20),
+    new Platform(450, 300, 150, 20),
+    new Platform(700, 230, 150, 20)
+];
+
+let coins = [
+    new Coin(230, 350),
+    new Coin(500, 260),
+    new Coin(740, 190)
+];
+
+function checkCollisions() {
+    for (let p of platforms) {
+        if (
+            player.x < p.x + p.w &&
+            player.x + player.w > p.x &&
+            player.y + player.h < p.y + 20 &&
+            player.y + player.h > p.y
+        ) {
+            player.y = p.y - player.h;
+            player.dy = 0;
+            player.grounded = true;
+        }
+    }
+
+    for (let c of coins) {
+        let dist = Math.hypot(player.x - c.x, player.y - c.y);
+        if (dist < 30 && !c.collected) {
+            c.collected = true;
+        }
+    }
+}
+
+function gameLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    for (let p of platforms) p.draw();
+    for (let c of coins) c.draw();
+
+    player.update();
+    checkCollisions();
+
+    if (coins.every(c => c.collected)) {
+        ctx.fillStyle = "white";
+        ctx.font = "40px Arial";
+        ctx.fillText("YOU WIN!", 350, 200);
+    }
+
+    requestAnimationFrame(gameLoop);
+}
+
+gameLoop();
+</script>
+
+</body>
+</html>
